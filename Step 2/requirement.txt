@@ -1,0 +1,4 @@
+pypdf
+langchain
+grobid_client_python
+
