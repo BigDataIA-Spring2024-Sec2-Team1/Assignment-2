@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from selenium.common.exceptions import NoSuchElementException
 
+
 def initialize_driver():
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # To run Chrome in headless mode
@@ -18,9 +19,11 @@ def initialize_driver():
     driver.maximize_window()
     return driver
 
+
 def close_privacy_warning(driver):
     close_button = driver.find_element(By.ID, "closePrivacyWarning")
     close_button.click()
+
 
 def click_next_button(driver):
     try:
@@ -30,6 +33,7 @@ def click_next_button(driver):
         return driver
     except NoSuchElementException:
         return None
+
 
 def scrape(driver, refresher_readings_list):
     time.sleep(5)  # Wait for the page to load
@@ -41,24 +45,48 @@ def scrape(driver, refresher_readings_list):
         reading = [title.text.strip(), link]
         refresher_readings_list.append(reading)
 
+
 def get_reading_detail_data(driver, reading):
     driver.get(reading[1])
     time.sleep(5)
     html_content = driver.page_source
     soup = BeautifulSoup(html_content, 'html.parser')
+
+    meta_data = soup.find('div', class_="content-utility")
+    span_elements = meta_data.find_all(
+        'span', class_=['content-utility-curriculum', 'content-utility-topic'])
+
+    data = {
+        "topic": "",
+        "year": "",
+        "level": "",
+        "introduction": "",
+        "learning_outcomes": "",
+        "summary": "",
+        "overview": ""
+    }
+
+    # Extract text content from selected span elements
+    if len(span_elements) >= 3:  # Ensure 'curriculum', 'topic', and 'level' span elements are present
+        data["year"] = span_elements[0].text.strip().split()[0]
+        data["level"] = span_elements[1].text.strip()
+        data["topic"] = span_elements[2].text.strip()
+
+    # Extract data from other sections
     headings = soup.find_all('h2', class_="article-section")
-    data = {"introduction": "", "learning_outcomes": "", "summary": "", "overview": ""}
     for section in headings:
         if section.text in ('Introduction', "Learning Outcomes", "Summary", "Overview"):
             if section.text == "Introduction":
-                data["introduction"] = section.findParent().text
+                data["introduction"] = section.findParent().text.strip()
             elif section.text == "Learning Outcomes":
-                data["learning_outcomes"] = section.find_next().text
+                data["learning_outcomes"] = section.find_next().text.strip()
             elif section.text == "Summary":
-                data["summary"] = section.find_next().text
+                data["summary"] = section.find_next().text.strip()
             elif section.text == "Overview":
-                data["overview"] = section.find_next().text
+                data["overview"] = section.find_next().text.strip()
+
     return data
+
 
 def scrape_reading_detail(refresher_readings_list):
     data_list = []
@@ -67,6 +95,9 @@ def scrape_reading_detail(refresher_readings_list):
         reading_detail = get_reading_detail_data(driver, reading)
         data_list.append({
             'Title': reading[0],
+            'Topic': reading_detail['topic'],
+            'Year': reading_detail['year'],
+            'Level': reading_detail['level'],
             'Introduction': reading_detail['introduction'],
             'Learning Outcomes': reading_detail['learning_outcomes'],
             'Summary': reading_detail['summary'],
@@ -75,6 +106,7 @@ def scrape_reading_detail(refresher_readings_list):
     driver.quit()
     df = pd.DataFrame(data_list)
     return df
+
 
 def main():
     refresher_readings_list = []
@@ -91,6 +123,6 @@ def main():
     print(df)
     df.to_csv('refresher_readings.csv', index=False)
 
+
 if __name__ == "__main__":
     main()
-
