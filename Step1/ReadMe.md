@@ -37,5 +37,3 @@ python script.py
 - Ensure you have a stable internet connection while running the script as it requires internet access to scrape data from the website.
 
 ---
-
-Feel free to customize this guide according to your specific project requirements or add any additional information you think might be helpful.
